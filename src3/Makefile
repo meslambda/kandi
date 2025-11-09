@@ -27,7 +27,7 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 CXXFLAGS = -std=c++23 -I$(IMGUI_DIR) -I$(BACKENDS_DIR) -I$(SERIALIB_DIR)
 CXXFLAGS += -g -Wall -Wformat -Wextra -Werror
 
-LIBS = -lGL -lX11 `pkg-config --static --libs glfw3`
+LIBS = -lGL -lX11 -lglfw -lrt -lm -ldl
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
