@@ -25,32 +25,27 @@ void PowerSupply::psuWriteAndLog(const std::string& logCsvPath,
                                  const bool         isCoolingBetweenMeasurements,
                                  const uint32_t     steps)
 {
-    const float dV        = m_maxVoltage / steps;
-    auto        gpibCmd   = std::format("APPL {},0,{:.1f};OUTP ON", m_channel, m_maxCurrent);
-    const auto  startTime = std::chrono::steady_clock::now();
+    constexpr auto maxCurrentError = 0.1f;
+    const float    dV              = m_maxVoltage / steps;
+
+    const auto gpibCmd = std::format("APPL {},0,{:.1f};OUTP ON", m_channel, m_maxCurrent);
     writeCmd(gpibCmd);
 
     std::ofstream csv(logCsvPath);
     csv << "Time(s),Voltage(V),Current(A)\n";
 
-    for (auto i = 1u; i <= steps; ++i)
+    size_t i               = 1;
+    auto   measuredCurrent = 0.0f;
+    while (i <= steps && measuredCurrent < m_maxCurrent - maxCurrentError)
     {
         const float voltage = dV * i;
-        const auto  gpibCmd = std::format("VOLT {:.1f};*WAI;MEAS:CURR?", voltage);
 
-        const auto measuredCurrent = stof(queryCmd(gpibCmd, 1));
-
-        const auto readTime = std::chrono::steady_clock::now();
-        const auto dt       = std::chrono::duration<double>(readTime - startTime).count();
-        csv << dt << "," << voltage << "," << measuredCurrent << "\n"
-            << std::flush;
-
-        if (measuredCurrent >= m_maxCurrent - 0.1) // Depending on psu behaviour, this could have smaller limit than what user has set.
-        {
-            break;
-        }
-
+        const auto gpibCmd = std::format("VOLT {:.1f};*WAI;MEAS:CURR?", voltage);
+        measuredCurrent    = stof(queryCmd(gpibCmd));
         handleCoolingAndDelay(isCoolingBetweenMeasurements, delayBetweenMeasurementsSeconds);
+
+        csv << (i - 1) * delayBetweenMeasurementsSeconds << "," << voltage << "," << measuredCurrent << "\n";
+        i++;
     }
     writeCmd("VOLT 0.0;OUTP OFF");
 }

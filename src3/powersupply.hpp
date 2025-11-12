@@ -10,7 +10,6 @@ class PowerSupply : public GPIBDevice
     void setMaxVoltage(const float maxVoltage);
     void setMaxCurrent(const float maxCurrent);
     void setActiveChannel(const std::string& channel);
-    void setNumberOfSteps(const uint32_t steps);
 
     void psuWriteAndLog(const std::string& logCsvPath,
                         const uint32_t     delayBetweenMeasurementsSeconds,

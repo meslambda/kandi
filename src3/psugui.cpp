@@ -9,6 +9,7 @@ PsuGui::PsuGui() : Gui("PSU controller")
     m_psu.setMaxVoltage(0);
     m_psu.setMaxCurrent(0);
     m_psu.setActiveChannel("P6V");
+    m_psu.setAdapterDelay(1000);
 }
 
 void PsuGui::renderUserSettings()
@@ -24,6 +25,16 @@ void PsuGui::renderUserSettings()
         {
             m_delaySeconds = 0;
         }
+    }
+
+    tableHelper("Adapter read buffer delay(ms): ");
+    if (ImGui::InputInt("##adapterDelay", &m_adapterReadDelayMs))
+    {
+        if (m_adapterReadDelayMs < 1)
+        {
+            m_adapterReadDelayMs = 1;
+        }
+        m_psu.setAdapterDelay(m_adapterReadDelayMs);
     }
 
     tableHelper("Device: ");

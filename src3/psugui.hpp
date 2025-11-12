@@ -27,7 +27,7 @@ class PsuGui : public Gui
     int         m_channelIndex                 = 0;
     std::string m_device                       = "/dev/ttyUSB0";
     int         m_baudRate                     = 115200;
-    // int         m_adapterReadDelayMs           = 500;
+    int         m_adapterReadDelayMs           = 1000;
 
     bool m_isMeasuring = false;
 

@@ -1,11 +1,18 @@
 #include "gpibdevice.hpp"
 
-#include <chrono>
+#include <format>
 #include <thread>
 
 GPIBDevice::~GPIBDevice()
 {
     closeDevice();
+}
+
+void GPIBDevice::setAdapterDelay(const uint32_t delayMs)
+{
+    const auto gpibCmd = std::format("++read_tmo_ms {}", delayMs);
+    writeCmd(gpibCmd);
+    m_adapterReadDelay = delayMs;
 }
 
 void GPIBDevice::openDevice(const std::string& device, const uint32_t baudRate)
@@ -17,7 +24,7 @@ void GPIBDevice::openDevice(const std::string& device, const uint32_t baudRate)
     writeCmd("++auto 0");
     writeCmd("++eoi 1");
     writeCmd("++eos 3");
-    writeCmd("++read_tmo_ms 500");
+    writeCmd("++read_tmo_ms 1000");
     writeCmd("++savecfg 0");
 }
 
@@ -27,15 +34,15 @@ void GPIBDevice::changeDevice(const std::string& device, const uint32_t baudRate
     openDevice(device, baudRate);
 }
 
-std::string GPIBDevice::readString(const uint32_t timeoutSeconds)
+std::string GPIBDevice::readString()
 {
     constexpr auto bufferSize = 2048u;
     char           buf[bufferSize]{};
 
     writeCmd("++read eoi");
-    auto        readLen = m_serial.readString(buf, '\n', bufferSize - 1, timeoutSeconds * 1000);
+    const auto  readLen = m_serial.readString(buf, '\n', bufferSize - 1, m_adapterReadDelay);
     std::string s(buf, readLen);
-    if (s.back() == '\n')
+    if (!s.empty() && s.back() == '\n')
     {
         s.pop_back();
     }
@@ -44,18 +51,18 @@ std::string GPIBDevice::readString(const uint32_t timeoutSeconds)
 
 void GPIBDevice::writeCmd(const std::string& s)
 {
-    std::string out = s;
-    if (out.back() != '\n')
+    auto out = s;
+    if (!s.empty() && out.back() != '\n')
     {
         out.push_back('\n');
     }
     m_serial.writeString(out.c_str());
 }
 
-std::string GPIBDevice::queryCmd(const std::string& cmd, const uint32_t timeoutSeconds)
+std::string GPIBDevice::queryCmd(const std::string& cmd)
 {
     writeCmd(cmd);
-    return readString(timeoutSeconds);
+    return readString();
 }
 
 void GPIBDevice::closeDevice()
@@ -64,7 +71,7 @@ void GPIBDevice::closeDevice()
 }
 
 /* If needed, this can be used to manually set read lenght timeout by setting read_tmo_ms low on adapter side and
- * controlling the timeout manually here. Lowest delays seems to be ~300 ms.
+ * controlling the timeout manually here
  */
 /*std::string GPIBDevice::readStringFast(const uint32_t timeoutSeconds)
 {
@@ -76,16 +83,14 @@ void GPIBDevice::closeDevice()
     {
         writeCmd("++read eoi"); // poll on every loop
 
-        auto readLen = m_serial.readString(buf, '\n', bufferSize - 1, m_adapterReadDelay); // 3rd param timeout is value here + read_tmo_ms
-        if (readLen > 1)
+        auto readLen = m_serial.readString(buf, '\n', bufferSize - 1, m_adapterReadDelay);
+
+        std::string s(buf, readLen);
+        if (!s.empty() && s.back() == '\n')
         {
-            std::string s(buf, readLen);
-            if (s.back() == '\n')
-            {
-                s.pop_back();
-            }
-            return s;
+            s.pop_back();
         }
+        return s;
     }
     return "readString timeout";
 }*/

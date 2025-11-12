@@ -1,0 +1,11 @@
+BasedOnStyle: llvm
+BreakBeforeBraces: Allman
+IndentWidth: 4
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+ColumnLimit: 0
+PointerAlignment: Left
+BraceWrapping:
+  AfterStruct: true
+  AfterEnum: true
+  SplitEmptyRecord: true
