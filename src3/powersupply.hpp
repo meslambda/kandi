@@ -22,5 +22,6 @@ class PowerSupply : public GPIBDevice
     float       m_maxCurrent{};
     std::string m_channel{};
 
-    void handleCoolingAndDelay(const bool isCooling, const uint32_t delaySeconds);
+    void  handleCoolingAndDelay(const bool isCooling, const uint32_t delaySeconds);
+    float stringToFloat(const std::string& s);
 };

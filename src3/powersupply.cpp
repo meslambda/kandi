@@ -1,5 +1,6 @@
 #include "powersupply.hpp"
 
+#include <charconv>
 #include <chrono>
 #include <format>
 #include <fstream>
@@ -41,7 +42,8 @@ void PowerSupply::psuWriteAndLog(const std::string& logCsvPath,
         const float voltage = dV * i;
 
         const auto gpibCmd = std::format("VOLT {:.1f};*WAI;MEAS:CURR?", voltage);
-        measuredCurrent    = stof(queryCmd(gpibCmd));
+        measuredCurrent    = stringFloat(queryCmd(gpibCmd));
+
         handleCoolingAndDelay(isCoolingBetweenMeasurements, delayBetweenMeasurementsSeconds);
 
         csv << (i - 1) * delayBetweenMeasurementsSeconds << "," << voltage << "," << measuredCurrent << "\n";
@@ -60,4 +62,20 @@ void PowerSupply::handleCoolingAndDelay(const bool isCooling, const uint32_t del
         return;
     }
     std::this_thread::sleep_for(std::chrono::seconds(delaySeconds));
+}
+
+float PowerSupply::stringToFloat(const std::string& s)
+{
+    float val;
+    auto  out = s;
+    if (!out.empty() && out.front() == '+')
+    {
+        out.erase(0, 1);
+    }
+
+    auto [ptr, ec] = std::from_chars(out.data(), out.data() + out.size(), val);
+    /*if (ec != std::errc()) {
+        // clear data buffers // might not work with incoming queries
+    }*/
+    return ec == std::errc() ? val : 0.0f;
 }
