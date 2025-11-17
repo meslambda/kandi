@@ -5,6 +5,7 @@
 #include <format>
 #include <fstream>
 #include <thread>
+#include <tuple>
 
 void PowerSupply::setMaxVoltage(const float maxVoltage)
 {
@@ -22,60 +23,68 @@ void PowerSupply::setActiveChannel(const std::string& channel)
 }
 
 void PowerSupply::psuWriteAndLog(const std::string& logCsvPath,
-                                 const uint32_t     delayBetweenMeasurementsSeconds,
-                                 const bool         isCoolingBetweenMeasurements,
+                                 const uint32_t     delaySeconds,
+                                 const bool         isCooling,
                                  const uint32_t     steps)
 {
-    constexpr auto maxCurrentError = 0.1f;
-    const float    dV              = m_maxVoltage / steps;
-
-    const auto gpibCmd = std::format("APPL {},0,{:.1f};OUTP ON", m_channel, m_maxCurrent);
-    writeCmd(gpibCmd);
+    const auto initPsuCmd = std::format("APPL {},0,{:.3f}", m_channel, m_maxCurrent);
+    writeCmd(initPsuCmd); // Set initial channel and max current
 
     std::ofstream csv(logCsvPath);
     csv << "Time(s),Voltage(V),Current(A)\n";
 
-    size_t i               = 1;
-    auto   measuredCurrent = 0.0f;
-    while (i <= steps && measuredCurrent < m_maxCurrent - maxCurrentError)
+    const auto dV = m_maxVoltage / steps;
+    for (auto i = 1u; i <= steps; ++i)
     {
-        const float voltage = dV * i;
+        const auto voltage         = dV * i;
+        auto       measuredVoltage = 0.0f;
+        auto       measuredCurrent = 0.0f;
 
-        const auto gpibCmd = std::format("VOLT {:.1f};*WAI;MEAS:CURR?", voltage);
-        measuredCurrent    = stringFloat(queryCmd(gpibCmd));
+        std::tie(measuredVoltage, measuredCurrent) = getMeasurements(voltage,
+                                                                     isCooling,
+                                                                     delaySeconds);
 
-        handleCoolingAndDelay(isCoolingBetweenMeasurements, delayBetweenMeasurementsSeconds);
-
-        csv << (i - 1) * delayBetweenMeasurementsSeconds << "," << voltage << "," << measuredCurrent << "\n";
-        i++;
+        csv << (i - 1) * delaySeconds << "," << measuredVoltage << "," << measuredCurrent << "\n";
     }
-    writeCmd("VOLT 0.0;OUTP OFF");
+
+    writeCmd("OUTP OFF;VOLT 0;CURR 0;*WAI");
+
+    std::cout << queryCmd("*IDN?") << std::endl;
 }
 
-void PowerSupply::handleCoolingAndDelay(const bool isCooling, const uint32_t delaySeconds)
+float PowerSupply::stringToFloat(std::string_view s)
 {
-    if (isCooling)
+    if (!s.empty() && s.front() == '+')
     {
-        writeCmd("VOLT 0.0;OUTP OFF");
-        std::this_thread::sleep_for(std::chrono::seconds(delaySeconds));
-        writeCmd("OUTP ON");
-        return;
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(delaySeconds));
-}
-
-float PowerSupply::stringToFloat(const std::string& s)
-{
-    float val;
-    auto  out = s;
-    if (!out.empty() && out.front() == '+')
-    {
-        out.erase(0, 1);
+        s.remove_prefix(1);
     }
 
-    auto [ptr, ec] = std::from_chars(out.data(), out.data() + out.size(), val);
-    /*if (ec != std::errc()) {
-        // clear data buffers // might not work with incoming queries
-    }*/
+    auto val       = 0.0f;
+    auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
     return ec == std::errc() ? val : 0.0f;
+}
+
+std::tuple<float, float> PowerSupply::getMeasurements(const float    voltageStep,
+                                                      const bool     isCoolingBetweenMeasurements,
+                                                      const uint32_t delayBetweenMeasurementsSeconds)
+{
+    auto measuredCurrent = 0.0f;
+    auto measuredVoltage = 0.0f;
+    if (isCoolingBetweenMeasurements)
+    {
+        const auto gpibCmd = std::format("VOLT {:.3f};OUTP ON;*WAI;MEAS:CURR?", voltageStep);
+        measuredCurrent    = stringToFloat(queryCmd(gpibCmd));
+        measuredVoltage    = stringToFloat(queryCmd("MEAS:VOLT?"));
+        writeCmd("OUTP OFF");
+        std::this_thread::sleep_for(std::chrono::seconds(delayBetweenMeasurementsSeconds));
+    }
+    else
+    {
+        const auto gpibCmd = std::format("VOLT {:.3f};OUTP ON;*WAI", voltageStep);
+        writeCmd(gpibCmd);
+        std::this_thread::sleep_for(std::chrono::seconds(delayBetweenMeasurementsSeconds));
+        measuredCurrent = stringToFloat(queryCmd("MEAS:CURR?"));
+        measuredVoltage = stringToFloat(queryCmd("MEAS:VOLT?"));
+    }
+    return std::make_tuple(measuredVoltage, measuredCurrent);
 }

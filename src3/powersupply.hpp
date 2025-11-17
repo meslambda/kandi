@@ -3,6 +3,7 @@
 #include "gpibdevice.hpp"
 
 #include <cinttypes>
+#include <tuple>
 
 class PowerSupply : public GPIBDevice
 {
@@ -15,13 +16,14 @@ class PowerSupply : public GPIBDevice
                         const uint32_t     delayBetweenMeasurementsSeconds,
                         const bool         isCoolingBetweenMeasurements,
                         const uint32_t     steps);
-    // void setOn();
 
   private:
     float       m_maxVoltage{};
     float       m_maxCurrent{};
     std::string m_channel{};
 
-    void  handleCoolingAndDelay(const bool isCooling, const uint32_t delaySeconds);
-    float stringToFloat(const std::string& s);
+    float                    stringToFloat(std::string_view s);
+    std::tuple<float, float> getMeasurements(const float    voltageStep,
+                                             const bool     isCoolingBetweenMeasurements,
+                                             const uint32_t delayBetweenMeasurementsSeconds);
 };

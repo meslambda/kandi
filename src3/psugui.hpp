@@ -26,7 +26,6 @@ class PsuGui : public Gui
     const char* m_channels[3]                  = {"P6V", "P25V", "N25V"};
     int         m_channelIndex                 = 0;
     std::string m_device                       = "/dev/ttyUSB0";
-    int         m_baudRate                     = 115200;
     int         m_adapterReadDelayMs           = 1000;
 
     bool m_isMeasuring = false;

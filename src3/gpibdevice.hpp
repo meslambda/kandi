@@ -11,8 +11,8 @@ class GPIBDevice
 
     void setAdapterDelay(const uint32_t delayMs);
 
-    void        openDevice(const std::string& device, const uint32_t baudRate);
-    void        changeDevice(const std::string& device, const uint32_t baudRate);
+    void        openDevice(const std::string& device);
+    void        changeDevice(const std::string& device);
     std::string readString();
     void        writeCmd(const std::string& s);
     std::string queryCmd(const std::string& cmd);
@@ -21,7 +21,7 @@ class GPIBDevice
 
   private:
     serialib m_serial{};
-    uint32_t m_adapterReadDelay = 500;
+    uint32_t m_adapterReadDelay = 1000;
 
     void closeDevice();
 };

@@ -28,7 +28,6 @@ Gui::Gui(const std::string& windowName)
     style.FontScaleDpi         = m_mainScale; // Set initial font scale. (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for documentation purpose)
     io.ConfigDpiScaleFonts     = true;        // [Experimental] Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
     io.ConfigDpiScaleViewports = true;        // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
-    io.ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);

@@ -2,7 +2,7 @@ CXX = g++
 EXE = proju
 
 IMGUI_DIR = ../imgui/
-BACKENDS_DIR = ../backends/
+BACKENDS_DIR = $(IMGUI_DIR)/backends
 SERIALIB_DIR = ../serialib/
 
 SOURCES = \

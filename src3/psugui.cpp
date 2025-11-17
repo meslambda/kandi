@@ -4,7 +4,7 @@
 
 PsuGui::PsuGui() : Gui("PSU controller")
 {
-    m_psu.openDevice(m_device, m_baudRate);
+    m_psu.openDevice(m_device);
 
     m_psu.setMaxVoltage(0);
     m_psu.setMaxCurrent(0);
@@ -40,21 +40,11 @@ void PsuGui::renderUserSettings()
     tableHelper("Device: ");
     if (ImGui::InputText("##device", &m_device))
     {
-        m_psu.changeDevice(m_device, m_baudRate);
-    }
-
-    tableHelper("Baudrate: ");
-    if (ImGui::InputInt("##baudRate", &m_baudRate))
-    {
-        if (m_baudRate < 1)
-        {
-            m_baudRate = 1;
-        }
-        m_psu.changeDevice(m_device, m_baudRate);
+        m_psu.changeDevice(m_device);
     }
 
     tableHelper("Set output to 0V between measurements: ");
-    if (ImGui::Button(m_isCoolingBetweenMeasurements ? "ON" : "OFF"))
+    if (ImGui::Button(m_isCoolingBetweenMeasurements ? "YES" : "NO"))
     {
         m_isCoolingBetweenMeasurements = !m_isCoolingBetweenMeasurements;
     }
@@ -63,7 +53,7 @@ void PsuGui::renderUserSettings()
     ImGui::InputText("##logPath", &m_logPath);
 
     tableHelper("Max voltage(V): ");
-    if (ImGui::InputFloat("##maxVoltage", &m_maxVoltage, 0.1f, 1.0f, "%.1f"))
+    if (ImGui::InputFloat("##maxVoltage", &m_maxVoltage, 0.001f, 0.01f, "%.3f"))
     {
         if (m_maxVoltage < 0.0f)
         {
@@ -73,7 +63,7 @@ void PsuGui::renderUserSettings()
     }
 
     tableHelper("Max current(A): ");
-    if (ImGui::InputFloat("##maxCurrent", &m_maxCurrent, 0.1f, 1.0f, "%.1f"))
+    if (ImGui::InputFloat("##maxCurrent", &m_maxCurrent, 0.001f, 0.01f, "%.3f"))
     {
         if (m_maxCurrent < 0.0f)
         {
@@ -102,11 +92,12 @@ void PsuGui::renderUserSettings()
 
 void PsuGui::render()
 {
-    ImGui::Begin("PSU Controller", nullptr, ImGuiWindowFlags_NoCollapse);
-
+    auto viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::Begin("PSU Controller", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
     renderUserSettings();
     launchAsyncMeasThread();
-
     ImGui::End();
 }
 
