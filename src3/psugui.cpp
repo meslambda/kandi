@@ -63,7 +63,7 @@ void PsuGui::renderUserSettings()
     ImGui::InputText("##logPath", &m_logPath);
 
     tableHelper("Max voltage(V): ");
-    if (ImGui::InputFloat("##maxVoltage", &m_maxVoltage, 0.1f, 1.0f, "%.1f"))
+    if (ImGui::InputFloat("##maxVoltage", &m_maxVoltage, 0.001f, 0.01f, "%.3f"))
     {
         if (m_maxVoltage < 0.0f)
         {
@@ -73,7 +73,7 @@ void PsuGui::renderUserSettings()
     }
 
     tableHelper("Max current(A): ");
-    if (ImGui::InputFloat("##maxCurrent", &m_maxCurrent, 0.1f, 1.0f, "%.1f"))
+    if (ImGui::InputFloat("##maxCurrent", &m_maxCurrent, 0.001f, 0.01f, "%.3f"))
     {
         if (m_maxCurrent < 0.0f)
         {

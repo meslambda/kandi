@@ -24,8 +24,8 @@ void GPIBDevice::openDevice(const std::string& device, const uint32_t baudRate)
     writeCmd("++auto 0");
     writeCmd("++eoi 1");
     writeCmd("++eos 3");
-    writeCmd("++read_tmo_ms 1000");
     writeCmd("++savecfg 0");
+    writeCmd(std::format("++read_tmo_ms {}", m_adapterReadDelay));
 }
 
 void GPIBDevice::changeDevice(const std::string& device, const uint32_t baudRate)

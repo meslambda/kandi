@@ -21,7 +21,7 @@ class GPIBDevice
 
   private:
     serialib m_serial{};
-    uint32_t m_adapterReadDelay = 500;
+    uint32_t m_adapterReadDelay = 1000;
 
     void closeDevice();
 };
