@@ -48,8 +48,6 @@ void PowerSupply::psuWriteAndLog(const std::string& logCsvPath,
     }
 
     writeCmd("OUTP OFF;VOLT 0;CURR 0;*WAI");
-
-    std::cout << queryCmd("*IDN?") << std::endl;
 }
 
 float PowerSupply::stringToFloat(std::string_view s)
