@@ -39,17 +39,23 @@ void GPIBDevice::changeDevice(const std::string& device)
 
 std::string GPIBDevice::readString()
 {
-    constexpr auto bufferSize = 4096u; // Hardware buffer max size
-    char           buf[bufferSize]{};
+    constexpr auto bufSize = 4096u; // Hardware buffer max size
+    std::string    buf(bufSize, '\0');
 
     writeCmd("++read eoi");
-    const auto  readLen = m_serial.readString(buf, '\n', bufferSize - 1, m_adapterReadDelay);
-    std::string s(buf, readLen);
-    if (!s.empty() && s.back() == '\n')
+    const auto readLen = m_serial.readString(buf.data(), '\n', bufSize - 1, m_adapterReadDelay);
+
+    if (readLen <= 0)
     {
-        s.pop_back();
+        return std::string();
     }
-    return s;
+
+    buf.resize(readLen);
+    if (buf.back() == '\n')
+    {
+        buf.pop_back();
+    }
+    return buf;
 }
 
 void GPIBDevice::writeCmd(const std::string& s)
