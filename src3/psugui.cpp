@@ -9,7 +9,6 @@ PsuGui::PsuGui() : Gui("PSU controller")
     m_psu.setMaxVoltage(0);
     m_psu.setMaxCurrent(0);
     m_psu.setActiveChannel("P6V");
-    m_psu.setAdapterDelay(1000);
 }
 
 void PsuGui::renderUserSettings()
@@ -27,14 +26,14 @@ void PsuGui::renderUserSettings()
         }
     }
 
-    tableHelper("Adapter read buffer delay(ms): ");
-    if (ImGui::InputInt("##adapterDelay", &m_adapterReadDelayMs))
+    tableHelper("GBIP device address: ");
+    if (ImGui::InputInt("##adapterDelay", &m_gpibAddr))
     {
-        if (m_adapterReadDelayMs < 1)
+        if (m_gpibAddr < 1)
         {
-            m_adapterReadDelayMs = 1;
+            m_gpibAddr = 1;
         }
-        m_psu.setAdapterDelay(m_adapterReadDelayMs);
+        m_psu.setGPIBAddr(m_gpibAddr);
     }
 
     tableHelper("Device: ");
@@ -53,21 +52,21 @@ void PsuGui::renderUserSettings()
     ImGui::InputText("##logPath", &m_logPath);
 
     tableHelper("Max voltage(V): ");
-    if (ImGui::InputFloat("##maxVoltage", &m_maxVoltage, 0.001f, 0.01f, "%.3f"))
+    if (ImGui::InputDouble("##maxVoltage", &m_maxVoltage, 0.001, 0.01, "%.6f"))
     {
-        if (m_maxVoltage < 0.0f)
+        if (m_maxVoltage < 0.0)
         {
-            m_maxVoltage = 0.0f;
+            m_maxVoltage = 0.0;
         }
         m_psu.setMaxVoltage(m_maxVoltage);
     }
 
     tableHelper("Max current(A): ");
-    if (ImGui::InputFloat("##maxCurrent", &m_maxCurrent, 0.001f, 0.01f, "%.3f"))
+    if (ImGui::InputDouble("##maxCurrent", &m_maxCurrent, 0.001, 0.01, "%.6f"))
     {
-        if (m_maxCurrent < 0.0f)
+        if (m_maxCurrent < 0.0)
         {
-            m_maxCurrent = 0.0f;
+            m_maxCurrent = 0.0;
         }
         m_psu.setMaxCurrent(m_maxCurrent);
     }

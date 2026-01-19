@@ -5,76 +5,85 @@
 
 GPIBDevice::~GPIBDevice()
 {
-    closeDevice();
+    m_serial.closeDevice();
 }
 
-void GPIBDevice::setAdapterDelay(const uint32_t delayMs)
+void GPIBDevice::setGPIBAddr(const uint8_t addr)
 {
-    const auto gpibCmd = std::format("++read_tmo_ms {}", delayMs);
-    writeCmd(gpibCmd);
-    m_adapterReadDelay = delayMs;
+    m_addr = addr;
+    m_serial.writeString(std::format("++addr {}\n", m_addr).c_str());
 }
 
 void GPIBDevice::openDevice(const std::string& device)
 {
-    constexpr auto baudRate = 115200u;
-    m_serial.openDevice(device.c_str(), baudRate);
+    m_serial.openDevice(device.c_str(), 115200u); // Dummy baudrate
+    m_serial.writeString("++savecfg 0\n");
+    m_serial.writeString("++mode 1\n");
+    m_serial.writeString("++auto 0\n");
+    m_serial.writeString("++eoi 1\n");
+    m_serial.writeString("++eos 3\n");
+    m_serial.writeString("++read_tmo_ms 3000\n"); // Max delay
+    m_serial.writeString(std::format("++addr {}\n", m_addr).c_str());
 
-    writeCmd("++mode 1");    // Controller mode
-    writeCmd("++addr 5");    // Used GPIB address
-    writeCmd("++auto 0");    // Autoread OFF
-    writeCmd("++eoi 1");     // Enable EOI insertion
-    writeCmd("++eos 3");     // Don't append instrument commands
-    writeCmd("++savecfg 0"); // Autosave to EEPROM OFF
-
-    // Read delay
-    writeCmd(std::format("++read_tmo_ms {}", m_adapterReadDelay));
+    writeCmd("*ESE 1;*SRE 48"); // OPC=2^0=1 and (MAV=2^4=16 + ESB=2^5=32) = 48
 }
 
 void GPIBDevice::changeDevice(const std::string& device)
 {
-    closeDevice();
+    m_serial.closeDevice();
     openDevice(device);
 }
 
 std::string GPIBDevice::readString()
 {
-    constexpr auto bufSize = 4096u; // Hardware buffer max size
-    std::string    buf(bufSize, '\0');
+    m_serial.writeString("++read eoi\n");
 
-    writeCmd("++read eoi");
-    const auto readLen = m_serial.readString(buf.data(), '\n', bufSize - 1, m_adapterReadDelay);
+    const auto  bufSize = 4096u;
+    std::string buf(bufSize, '\0');
 
+    const auto readLen = m_serial.readString(buf.data(), '\n', bufSize - 1u);
     if (readLen <= 0)
     {
         return std::string();
     }
 
-    buf.resize(readLen);
-    if (buf.back() == '\n')
-    {
-        buf.pop_back();
-    }
+    buf.resize(readLen - 1u);
     return buf;
 }
 
-void GPIBDevice::writeCmd(const std::string& s)
+void GPIBDevice::writeCmd(const std::string& cmd)
 {
-    auto out = s;
-    if (!out.empty() && out.back() != '\n')
+    constexpr auto srqPollDelayMs = 10u;
+
+    m_serial.writeString((cmd + ";*WAI;*OPC" + '\n').c_str());
+    while (!isSrqBitSet())
     {
-        out.push_back('\n');
+        std::this_thread::sleep_for(std::chrono::milliseconds(srqPollDelayMs));
     }
-    m_serial.writeString(out.c_str());
+
+    m_serial.writeString("*CLS\n");
+    while (isSrqBitSet())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(srqPollDelayMs));
+    }
 }
 
 std::string GPIBDevice::queryCmd(const std::string& cmd)
 {
-    writeCmd(cmd);
+    constexpr auto srqPollDelayMs = 10u;
+    m_serial.writeString((cmd + '\n').c_str());
+    while (!isSrqBitSet())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(srqPollDelayMs));
+    }
     return readString();
 }
 
-void GPIBDevice::closeDevice()
+bool GPIBDevice::isSrqBitSet()
 {
-    m_serial.closeDevice();
+    constexpr auto srqReadSize = 4u; // bit + \n\r\0
+    std::string    buf(srqReadSize, '0');
+    m_serial.writeString("++srq\n");
+    m_serial.readString(buf.data(), '\n', srqReadSize - 1u);
+    return buf[0] != '0';
 }

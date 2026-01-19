@@ -9,17 +9,16 @@ class GPIBDevice
   public:
     ~GPIBDevice();
 
-    void setAdapterDelay(const uint32_t delayMs);
-
+    void        setGPIBAddr(const uint8_t addr);
     void        openDevice(const std::string& device);
     void        changeDevice(const std::string& device);
-    std::string readString();
-    void        writeCmd(const std::string& s);
     std::string queryCmd(const std::string& cmd);
+    void        writeCmd(const std::string& cmd);
 
   private:
     serialib m_serial{};
-    uint32_t m_adapterReadDelay = 1000;
+    uint8_t  m_addr = 5u;
 
-    void closeDevice();
+    bool        isSrqBitSet();
+    std::string readString();
 };
